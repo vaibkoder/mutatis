@@ -1,0 +1,12 @@
+═══ SPIKE C — pdf-lib + fontkit subset emission ═══
+output: spikes/render-core/out/spikeC.pdf  size=18.2 KB  pages=2
+vector text: drawText positioned runs (not raster) ✓
+font subset: BaseFont=LiberationSans-9666  composite(Type0/CIDFontType2)=true  ✓ (subset-named)
+embedded TrueType: FontFile2=true ToUnicode=true (ToUnicode ⇒ selectable/extractable)
+subset size: 10279 bytes  vs original 139512 bytes  ✓ subsetted (≪ original)
+selectable text (pdfjs getTextContent, page 1):
+   "This 1 Agreement is made between the parties and shall be governed by the laws of Singapore. The Borrower shall pay all …"
+   ✓ real words extracted (text is selectable)
+
+NOTE: WebKit/Safari + Acrobat/Preview open is a user-side check (Phase 2 full cross-browser run).
+VERDICT: GO-eligible ✓ (valid 2-page vector PDF, subset-embedded font, selectable text)

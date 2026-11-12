@@ -1,0 +1,79 @@
+Mutatis — Proprietary Source-Available Licence (View Only)
+
+Copyright (c) 2026 the Mutatis authors. All rights reserved.
+
+This software and its accompanying documentation, specifications and other
+materials — everything in this repository, including the Word add-in, the web
+app and the desktop application in the `desktop/` directory (the "Work") — are
+made publicly readable for reference and evaluation only. The Work is NOT open source. No open-source licence is granted, offered
+or implied.
+
+1. GRANT
+
+   You are granted a personal, non-exclusive, non-transferable, revocable
+   permission to view and read the Work, and to retain such local copies as are
+   made automatically by your browser or by the ordinary operation of the
+   hosting platform, for the sole purpose of reading it.
+
+   That is the entire grant.
+
+2. RESERVATIONS
+
+   Except as expressly permitted by clause 1, and except where a right cannot
+   lawfully be excluded, you may NOT:
+
+   (a) use the Work, or any part of it, for any purpose — personal, internal,
+       academic, commercial or otherwise;
+   (b) run, execute, build, compile, deploy, host or install the Work;
+   (c) copy, reproduce, download, clone, mirror, archive or store the Work,
+       other than as permitted by clause 1;
+   (d) modify, adapt, translate, refactor or create derivative works;
+   (e) distribute, publish, sublicense, sell, rent, lease or otherwise transfer
+       the Work or any derivative of it;
+   (f) incorporate the Work, in whole or in part, into any other software,
+       product, service or codebase;
+   (g) use the Work, or any part of it, as training data, fine-tuning data,
+       retrieval corpus or evaluation data for any machine-learning or
+       artificial-intelligence system; or
+   (h) remove, obscure or alter any copyright, licence or attribution notice.
+
+3. PLATFORM OPERATIONS
+
+   Where the Work is hosted on a platform whose terms of service require the
+   copyright holder to permit certain acts by other users of that platform
+   (for example, viewing and forking within the platform), clause 2 does not
+   purport to withdraw those acts to the extent they are mandated by those
+   terms. It withdraws everything else. A fork created under such terms confers
+   no rights beyond clause 1.
+
+4. NO CONTRIBUTION LICENCE
+
+   No contribution, pull request, issue or patch is solicited. If you submit
+   one nonetheless, you assign to the copyright holder all right, title and
+   interest in it, or, where such assignment is ineffective, grant the
+   copyright holder a perpetual, worldwide, irrevocable, royalty-free licence
+   to use it without restriction.
+
+5. NO WARRANTY
+
+   THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. THE WORK IS
+   NOT LEGAL ADVICE AND IS NOT A SUBSTITUTE FOR PROFESSIONAL LEGAL JUDGMENT.
+
+6. NO LIABILITY
+
+   TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE COPYRIGHT HOLDER SHALL NOT BE
+   LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT
+   OR OTHERWISE, ARISING FROM OR IN CONNECTION WITH THE WORK OR ITS USE.
+
+7. TERMINATION
+
+   The permission in clause 1 terminates automatically and immediately on any
+   breach of clause 2.
+
+8. SEPARATE LICENCES
+
+   Rights beyond clause 1 are available only under a separate written licence
+   signed by the copyright holder. Third-party dependencies referenced by the
+   Work remain governed by their own licences; nothing here alters them.

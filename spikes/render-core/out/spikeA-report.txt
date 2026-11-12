@@ -1,0 +1,40 @@
+═══ SPIKE A — thesis test ═══
+A4 column width: 451.28pt  body size: 11pt  space advance: 3.056pt
+
+(1) METRIC-CLONE IDENTITY  Liberation Sans vs Arial (per-word width @11pt, kern/liga off)
+   Agreement          clone=  53.808  arial=  53.808  Δ=0.000%
+   Confidential       clone=  58.094  arial=  58.094  Δ=0.000%
+   Information        clone=  55.027  arial=  55.027  Δ=0.000%
+   hereinafter        clone=  52.588  arial=  52.588  Δ=0.000%
+   Parties            clone=  34.235  arial=  34.235  Δ=0.000%
+   indemnification    clone=  73.375  arial=  73.375  Δ=0.000%
+   jurisdiction       clone=  51.965  arial=  51.965  Δ=0.000%
+   Singapore          clone=  50.150  arial=  50.150  Δ=0.000%
+   obligations        clone=  52.594  arial=  52.594  Δ=0.000%
+   pursuant           clone=  42.808  arial=  42.808  Δ=0.000%
+   Clause             clone=  34.241  arial=  34.241  Δ=0.000%
+   Schedule           clone=  45.869  arial=  45.869  Δ=0.000%
+   whatsoever         clone=  56.251  arial=  56.251  Δ=0.000%
+   notwithstanding    clone=  76.441  arial=  76.441  Δ=0.000%
+   representations    clone=  75.824  arial=  75.824  Δ=0.000%
+   → max Δ 0.000%, avg Δ 0.000%  ✓ advance-identical
+
+(2) usWin LINE-HEIGHT
+   upem=2048 USE_TYPO_METRICS=false winAsc=1854 winDesc=434
+   winSingle=12.289pt  typoSingle=11.972pt  → single line height = 12.289pt
+
+(3) GREEDY + JUSTIFICATION  (paragraph → lines)
+   L0: 14w  natural→final  421.28→ 451.28pt  expand×1.755      "The Borrower shall, on each Interest Payment Dat…"
+   L1: 16w  natural→final  459.82→ 451.28pt  shrink×0.814      "(Payment mechanics), pay to the Agent for the ac…"
+   L2: 16w  natural→final  445.81→ 451.28pt  expand×1.119      "the Loan which has accrued during the Interest P…"
+   L3: 15w  natural→final  441.51→ 451.28pt  expand×1.228      "such payment shall be required to the extent tha…"
+   L4: 12w  natural→final  379.08→ 379.08pt  flush-left(last)  "amount to exceed the Total Commitments then in f…"
+   lines: 5  overflow lines: 0  ✓ no overflow
+   max inter-word shrink used: 18.6% (cap 20%)
+
+(4) overlay artifact: spikes/render-core/out/spikeA-overlay.html (open in a browser; compare to Word)
+
+ROUNDING POLICY (fixed for the engine): advances summed in font units (integers),
+converted to pt once per measured span as (sumFu / upem) * sizePt; no per-glyph pt rounding.
+
+VERDICT: GO-eligible ✓ (clone-identical, no overflow, line-height computed)

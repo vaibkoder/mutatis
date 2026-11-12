@@ -1,0 +1,7 @@
+@import '../renderer/src/index.css';
+
+/*
+ * Tailwind scans from the Vite root (src/web) and would otherwise never see the
+ * class names used in the shared renderer components, leaving them unstyled.
+ */
+@source '../renderer/src';

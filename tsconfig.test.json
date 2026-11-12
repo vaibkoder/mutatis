@@ -1,0 +1,21 @@
+{
+  // Type-checks the TEST tree, which `tsconfig.json` excludes (it has `rootDir:
+  // "./src"` and drives the build). Same strictness as `src` with one deliberate
+  // relaxation, recorded below. Run by `npm run typecheck` alongside the build
+  // config, so a test file can no longer drift from the types it exercises.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "types": ["office-js", "node"],
+    // RELAXED FOR TESTS ONLY. `src` keeps this on. In a test an unchecked index
+    // that really is undefined fails the test immediately and legibly, so the
+    // rule buys far less here than it does in shipped code — while costing ~61
+    // `!` assertions across the tree, each of which is itself a silenced check.
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src/**/*", "tests/**/*", "eslint-plugins/**/*"],
+  // USER-RUN Playwright gate; `@playwright/test` is deliberately not installed.
+  // See the header of that file and the matching entry in eslint.config.js.
+  "exclude": ["node_modules", "dist", "tests/integration/pdf-network.spec.ts"]
+}

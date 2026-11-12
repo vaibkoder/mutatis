@@ -1,0 +1,52 @@
+/*
+ * Office theme bridge (ADR-0012).
+ *
+ * The task pane follows Office.context.officeTheme automatically. main.tsx reads
+ * the live theme on Office.onReady and on the theme-changed event, then sets the
+ * data-office-theme attribute and the --office-* custom properties on <html>.
+ * This file maps those into the --dp-* design tokens consumed by every component.
+ *
+ * Mapping is one-directional: Office theme → design tokens. No component reads
+ * Office theme values directly.
+ */
+
+/* Light is the default token set (tokens.css). Dark overrides below. */
+html[data-office-theme="dark"] {
+  --dp-bg: #1b1a19;
+  --dp-bg-subtle: #252423;
+  --dp-bg-hover: #323130;
+  --dp-fg: #f3f2f1;
+  --dp-fg-subtle: #c8c6c4;
+  --dp-border: #484644;
+  --dp-accent: #2899f5;
+  --dp-accent-fg: #1b1a19;
+
+  /* Severity colours brightened for dark-mode AA contrast */
+  --dp-color-error: #f1707b;
+  --dp-color-warning: #e8c000;
+  --dp-color-info: #6cb8f6;
+  --dp-color-success: #4ad14a;
+}
+
+/* High-contrast: defer to the OS forced-colours palette where present. */
+@media (forced-colors: active) {
+  :root {
+    --dp-bg: Canvas;
+    --dp-fg: CanvasText;
+    --dp-border: CanvasText;
+    --dp-accent: Highlight;
+    --dp-accent-fg: HighlightText;
+  }
+  :focus-visible {
+    outline: 2px solid Highlight;
+  }
+}
+
+/*
+ * When Office passes explicit theme colours, main.tsx writes them to
+ * --office-body-background / --office-body-foreground etc.; prefer those when set.
+ */
+html[style*="--office-body-background"] {
+  --dp-bg: var(--office-body-background, var(--dp-bg));
+  --dp-fg: var(--office-body-foreground, var(--dp-fg));
+}

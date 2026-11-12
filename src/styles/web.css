@@ -1,0 +1,964 @@
+/*
+ * apps/web — standalone web app frame (ADR-0022, spec/features/12 phase 2;
+ * visual identity ADR-0044).
+ *
+ * Loaded ONLY by src/web/index.html and src/web/main.tsx. The task pane loads
+ * tokens.css + office-theme.css + shell.css and never this file, which is the
+ * seam that lets the web target carry its own look while the add-in keeps
+ * following the live Office theme. Guarded by web-css-tokens.test.ts.
+ *
+ * This file does three things:
+ *   1. RE-VALUES the --dp-* design tokens for the browser (oklch, roles not
+ *      hues) and adds the tiers the desktop app has and tokens.css does not —
+ *      a third surface, a third text tier, border-strong, accent-soft, focus.
+ *      No token is renamed or removed: shell.css has ~3500 lines of consumers
+ *      and ADR-0012 forbids a component hardcoding a colour.
+ *   2. the app frame: header, toolbar, tabs, and the two-pane layout;
+ *   3. the in-app document view + the revealed-paragraph highlight.
+ *
+ * Token-only (ADR-0012): no hardcoded brand colours, no jurisdiction/US literals.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   1. TOKENS — light
+   ═══════════════════════════════════════════════════════════════════════
+   Every value below is measured, not eyeballed. WCAG 2.1 AA (4.5:1) holds
+   for every text/surface pair this stylesheet can create; the worst is
+   4.75:1. The one rule that keeps that true is stated on --dp-fg-faint and
+   must be honoured by anything that consumes it.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces — three tiers. Rails are `subtle`, the work area is `bg`,
+     cards/overlays are `raised`. `hover` is a fill, never a new hue. */
+  --dp-bg: oklch(0.99 0 0);
+  --dp-bg-raised: oklch(1 0 0);
+  --dp-bg-subtle: oklch(0.965 0.002 265);
+  --dp-bg-hover: oklch(0.93 0.004 265);
+
+  /* Borders do the separating — almost no shadows, no gradients. */
+  --dp-border: oklch(0.9 0.004 265);
+  --dp-border-strong: oklch(0.82 0.006 265);
+
+  /* Text — three tiers.
+     `fg` is body copy, `fg-subtle` is labels and anything that can sit in a
+     hovered row, `fg-faint` is incidental metadata.
+
+     --dp-fg-faint IS ONLY AA-SAFE ON bg / bg-raised / bg-subtle. It is NOT
+     safe on --dp-bg-hover (4.09:1). Against a near-white surface AA caps text
+     at about L=0.56, so all three tiers have to fit in [0.25, 0.56] and there
+     is no room for a fourth step below `subtle` that also survives a hover
+     fill. Anything inside a rule with a :hover fill uses --dp-fg-subtle. */
+  --dp-fg: oklch(0.25 0.008 265);
+  --dp-fg-subtle: oklch(0.48 0.01 265);
+  --dp-fg-faint: oklch(0.53 0.008 265);
+
+  --dp-accent: oklch(0.51 0.16 256);
+  --dp-accent-fg: oklch(0.99 0 0);
+  --dp-accent-soft: oklch(0.95 0.03 256);
+  --dp-accent-hover: oklch(0.45 0.16 256);
+  --dp-focus: oklch(0.6 0.17 256);
+
+  /* Severity. No desktop counterpart, so these are re-tuned into the same
+     family rather than left as foreign Fluent hexes. Amber is the hardest
+     hue to get to 4.5:1 on near-white, which is why `warning` and `check`
+     sit lower than the rest — the Fluent originals were darker for the same
+     reason, and a naive port of the desktop's lightness would REGRESS them. */
+  --dp-color-error: oklch(0.51 0.19 25);
+  --dp-color-warning: oklch(0.5 0.13 75);
+  --dp-color-check: oklch(0.5 0.12 85);
+  --dp-color-info: oklch(0.51 0.16 256);
+  --dp-color-success: oklch(0.47 0.15 150);
+
+  /* Bridging tokens.
+     Each of these is referenced by shell.css or by this file and defined
+     NOWHERE, so today it silently resolves to a hardcoded Fluent hex — or,
+     for the two with no fallback at all, to an invalid value (a transparent
+     background, a zero padding). Defining them here fixes that web-side
+     without touching the shared stylesheet. */
+  --dp-accent-rgb: 22, 100, 191;          /* was `0, 120, 212` — Fluent blue  */
+  --dp-accent-bg: var(--dp-accent-soft);  /* was rgba(accent-rgb, .1)         */
+  --dp-warn: var(--dp-color-warning);     /* was #b45309 / #ef6c00            */
+  --dp-ok: var(--dp-color-success);       /* was #2e7d32                      */
+  --dp-fg-error: var(--dp-color-error);   /* was #c00                         */
+  --dp-bg-elevated: var(--dp-bg-raised);  /* was INVALID -> transparent       */
+  --dp-space-md: var(--dp-space-3, 12px); /* was INVALID -> padding: 0        */
+
+  /* Radii — 4px for controls and rows, 6px for cards and inputs. */
+  --dp-radius: 4px;
+  --dp-radius-md: 6px;
+
+  /* Type. We are in a browser, not in Word, so the system UI face leads.
+     Dense and quiet: body 12, labels 11, metadata 10, app title 13. */
+  --dp-font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --dp-font-size-lg: 13px;
+  --dp-font-size-md: 12px;
+  --dp-font-size-sm: 11px;
+  --dp-font-size-xs: 10px;
+
+  --dp-focus-ring: 2px solid var(--dp-focus);
+}
+
+/* ── TOKENS — dark ──────────────────────────────────────────────────────
+   Two selectors, deliberately duplicated.
+
+   The @media block is scoped to :root:not([data-theme]) so it can never
+   fight an explicit choice, and it exists so the FIRST PAINT is already
+   right for the overwhelming majority who have not overridden anything —
+   before the deferred module script has run and set the attribute. "Follow
+   system" therefore REMOVES the attribute rather than writing the resolved
+   value; writing it would defeat this block entirely. See ThemeToggle.tsx.
+   ────────────────────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --dp-bg: oklch(0.19 0.006 265);
+    --dp-bg-raised: oklch(0.23 0.007 265);
+    --dp-bg-subtle: oklch(0.15 0.006 265);
+    --dp-bg-hover: oklch(0.27 0.008 265);
+
+    --dp-border: oklch(0.31 0.008 265);
+    --dp-border-strong: oklch(0.42 0.01 265);
+
+    --dp-fg: oklch(0.93 0.004 265);
+    --dp-fg-subtle: oklch(0.72 0.008 265);
+    --dp-fg-faint: oklch(0.645 0.008 265);
+
+    --dp-accent: oklch(0.68 0.14 256);
+    --dp-accent-fg: oklch(0.17 0.01 256);
+    --dp-accent-soft: oklch(0.3 0.06 256);
+    --dp-accent-hover: oklch(0.74 0.14 256);
+    --dp-focus: oklch(0.7 0.15 256);
+
+    --dp-color-error: oklch(0.7 0.17 25);
+    --dp-color-warning: oklch(0.77 0.13 75);
+    --dp-color-check: oklch(0.78 0.12 85);
+    --dp-color-info: oklch(0.68 0.14 256);
+    --dp-color-success: oklch(0.76 0.16 150);
+
+    --dp-accent-rgb: 91, 154, 237;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --dp-bg: oklch(0.19 0.006 265);
+  --dp-bg-raised: oklch(0.23 0.007 265);
+  --dp-bg-subtle: oklch(0.15 0.006 265);
+  --dp-bg-hover: oklch(0.27 0.008 265);
+
+  --dp-border: oklch(0.31 0.008 265);
+  --dp-border-strong: oklch(0.42 0.01 265);
+
+  --dp-fg: oklch(0.93 0.004 265);
+  --dp-fg-subtle: oklch(0.72 0.008 265);
+  --dp-fg-faint: oklch(0.645 0.008 265);
+
+  --dp-accent: oklch(0.68 0.14 256);
+  --dp-accent-fg: oklch(0.17 0.01 256);
+  --dp-accent-soft: oklch(0.3 0.06 256);
+  --dp-accent-hover: oklch(0.74 0.14 256);
+  --dp-focus: oklch(0.7 0.15 256);
+
+  --dp-color-error: oklch(0.7 0.17 25);
+  --dp-color-warning: oklch(0.77 0.13 75);
+  --dp-color-check: oklch(0.78 0.12 85);
+  --dp-color-info: oklch(0.68 0.14 256);
+  --dp-color-success: oklch(0.76 0.16 150);
+
+  --dp-accent-rgb: 91, 154, 237;
+}
+
+/* An explicit light choice must beat a dark OS — the @media block above is
+   already scoped away from it; this is here so `color-scheme` is right too. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+/* High contrast: defer to the OS forced-colours palette. Last, so it wins
+   over both theme blocks. */
+@media (forced-colors: active) {
+  :root,
+  :root:not([data-theme]),
+  :root[data-theme='dark'],
+  :root[data-theme='light'] {
+    --dp-bg: Canvas;
+    --dp-bg-raised: Canvas;
+    --dp-bg-subtle: Canvas;
+    --dp-bg-hover: Highlight;
+    --dp-fg: CanvasText;
+    --dp-fg-subtle: CanvasText;
+    --dp-fg-faint: CanvasText;
+    --dp-border: CanvasText;
+    --dp-border-strong: CanvasText;
+    --dp-accent: Highlight;
+    --dp-accent-fg: HighlightText;
+    --dp-focus: Highlight;
+  }
+  :focus-visible {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   2. Base
+   ═══════════════════════════════════════════════════════════════════════ */
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--dp-bg);
+  color: var(--dp-fg);
+  font-family: var(--dp-font-family);
+  font-size: var(--dp-font-size-md);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100vh;
+}
+
+/* Focus is a 2px ring in --dp-focus with 2px offset, on :focus-visible only.
+   tokens.css sets offset 1px; this file loads after it. */
+:focus-visible {
+  outline: var(--dp-focus-ring);
+  outline-offset: 2px;
+}
+
+.dp-web {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────
+   One dense row: the product name, a truncating subtitle, and the theme
+   control pushed right. The subtitle carries the confidentiality promise,
+   so it keeps a title attribute — truncation must never be the only copy. */
+.dp-web__header {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-2, 8px);
+  height: 40px;
+  flex: none;
+  padding: 0 var(--dp-space-3, 12px);
+  border-bottom: 1px solid var(--dp-border);
+  background: var(--dp-bg-raised);
+  user-select: none;
+}
+
+.dp-web__brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--dp-space-2, 8px);
+  min-width: 0;
+}
+
+.dp-web__title {
+  margin: 0;
+  flex: none;
+  font-size: var(--dp-font-size-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.dp-web__tagline {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-sm);
+}
+
+/* ── Theme control (ADR-0044) ───────────────────────────────────────── */
+.dp-web__theme {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-inline-start: auto;
+  flex: none;
+  padding: 2px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--dp-radius-md);
+  background: var(--dp-bg-subtle);
+}
+
+.dp-web__theme-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dp-radius);
+  background: transparent;
+  color: var(--dp-fg-subtle);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.dp-web__theme-btn:hover {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg);
+}
+
+.dp-web__theme-btn[aria-checked='true'] {
+  background: var(--dp-accent);
+  color: var(--dp-accent-fg);
+}
+
+/* ── Top-level Proof | Compare view switch ─────────────────────────── */
+.dp-web__view-toggle {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  flex: none;
+  height: 34px;
+  padding: 0 var(--dp-space-2, 8px);
+  border-bottom: 1px solid var(--dp-border);
+  background: var(--dp-bg-subtle);
+}
+
+.dp-web__view-btn {
+  padding: 0 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--dp-radius) var(--dp-radius) 0 0;
+  background: transparent;
+  color: var(--dp-fg-subtle);
+  font: inherit;
+  font-size: var(--dp-font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.dp-web__view-btn:hover {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg);
+}
+
+.dp-web__view-btn--active,
+.dp-web__view-btn--active:hover {
+  background: var(--dp-bg);
+  color: var(--dp-fg);
+  font-weight: 600;
+  border-bottom-color: var(--dp-accent);
+}
+
+/* The Compare surface inside the web app. */
+.dp-web__compare {
+  padding: var(--dp-space-3, 12px);
+  overflow: auto;
+}
+
+/* ── Toolbar ────────────────────────────────────────────────────────── */
+.dp-web__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-2, 8px);
+  flex: none;
+  min-height: 36px;
+  padding: var(--dp-space-1, 4px) var(--dp-space-3, 12px);
+  border-bottom: 1px solid var(--dp-border);
+  flex-wrap: wrap;
+}
+
+.dp-web__spacer {
+  flex: 1 1 auto;
+}
+
+.dp-web__file {
+  position: relative;
+  display: inline-flex;
+}
+
+.dp-web__file-btn,
+.dp-web__btn {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--dp-accent);
+  border-radius: var(--dp-radius);
+  background: var(--dp-accent);
+  color: var(--dp-accent-fg);
+  font: inherit;
+  font-size: var(--dp-font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.dp-web__file-btn:hover {
+  background: var(--dp-accent-hover);
+  border-color: var(--dp-accent-hover);
+}
+
+/* Secondary action: the border does the work, hover is a fill not a hue. */
+.dp-web__btn {
+  border-color: var(--dp-border);
+  background: var(--dp-bg-subtle);
+  color: var(--dp-fg);
+}
+
+.dp-web__btn:hover:not(:disabled) {
+  background: var(--dp-bg-hover);
+  border-color: var(--dp-border-strong);
+}
+
+.dp-web__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* The native file input overlays the styled label, transparent + clickable. */
+.dp-web__file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.dp-web__filename {
+  color: var(--dp-fg-faint);
+  font-size: var(--dp-font-size-sm);
+}
+
+.dp-web__status {
+  padding: var(--dp-space-3, 12px);
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-sm);
+}
+
+.dp-web__status--error {
+  color: var(--dp-color-error);
+}
+
+/* ── Two-pane layout ────────────────────────────────────────────────── */
+.dp-web__panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.dp-web__doc-pane,
+.dp-web__findings-pane {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* The rail is sunken with a border on its inward side; the work area is
+   plain surface. */
+.dp-web__doc-pane {
+  border-inline-end: 1px solid var(--dp-border);
+  background: var(--dp-bg-subtle);
+}
+
+.dp-web__pane-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  padding: var(--dp-space-3, 12px);
+}
+
+/* ── Section header ─────────────────────────────────────────────────────
+   36px row, 13px icon, small uppercase label, 1px bottom rule, optional
+   count chip. The one shared idiom across every pane in the product. */
+.dp-web__pane-head {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-2, 8px);
+  flex: none;
+  height: 36px;
+  padding: 0 var(--dp-space-3, 12px);
+  border-bottom: 1px solid var(--dp-border);
+}
+
+.dp-web__pane-head svg {
+  flex: none;
+  color: var(--dp-fg-subtle);
+}
+
+.dp-web__pane-title {
+  margin: 0;
+  font-size: var(--dp-font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dp-fg-subtle);
+}
+
+/* Findings heading — the count rides in the same row as the label. */
+.dp-web__findings-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-2, 8px);
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: var(--dp-font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dp-fg-subtle);
+}
+
+.dp-web__findings-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  margin-inline-start: auto;
+  padding: 1px 5px;
+  border-radius: var(--dp-radius);
+  background: var(--dp-border);
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-xs);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   3. In-app document view
+   ═══════════════════════════════════════════════════════════════════════ */
+.dp-web-doc {
+  font-size: var(--dp-font-size-md);
+  line-height: 1.55;
+}
+
+.dp-web-doc__para {
+  margin: 0 0 var(--dp-space-2, 8px);
+  padding: 2px 6px;
+  border-radius: var(--dp-radius);
+  white-space: pre-wrap;
+}
+
+/* fg-subtle, not fg-faint: a footnote can also be the --active paragraph,
+   which puts it on --dp-bg-hover, where faint is not AA-safe. */
+.dp-web-doc__para--footnote {
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-sm);
+}
+
+/* The paragraph WebHostPort.reveal() scrolls to + highlights. */
+.dp-web-doc__para--active {
+  background: var(--dp-bg-hover);
+  box-shadow: inset 3px 0 0 0 var(--dp-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   Batch compare — one template against N versions (ADR-0037, spec 17 §5.4).
+
+   A panel with no stylesheet section reads as broken rather than unstyled, so
+   this block is part of the feature, not a finishing touch. The row list is the
+   important surface: every pair the batch was asked to run appears here, and a
+   failed or unrunnable pair must be as legible as a successful one — hence the
+   per-status left border rather than, say, hiding the ones that went wrong.
+   --------------------------------------------------------------------------- */
+
+.dp-batch {
+  padding: var(--dp-space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-3, 12px);
+}
+
+.dp-batch__intro {
+  margin: 0;
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-sm);
+}
+
+.dp-batch__slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dp-space-4, 16px);
+}
+
+.dp-batch__slot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dp-space-1, 4px);
+  min-width: 220px;
+}
+
+.dp-batch__slot-title {
+  font-weight: 600;
+  font-size: var(--dp-font-size-sm);
+}
+
+.dp-batch__slot-value {
+  color: var(--dp-fg-faint);
+  font-size: var(--dp-font-size-xs);
+}
+
+.dp-batch__queue {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--dp-radius-md);
+}
+
+.dp-batch__queue-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--dp-space-2, 8px);
+  padding: var(--dp-space-1, 4px) var(--dp-space-2, 8px);
+  font-size: var(--dp-font-size-sm);
+  border-bottom: 1px solid var(--dp-border);
+}
+
+.dp-batch__queue-item:last-child {
+  border-bottom: none;
+}
+
+.dp-batch__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-3, 12px);
+}
+
+.dp-batch__run {
+  height: 26px;
+  padding: 0 12px;
+  border: 1px solid var(--dp-accent);
+  border-radius: var(--dp-radius);
+  background: var(--dp-accent);
+  color: var(--dp-accent-fg);
+  font: inherit;
+  font-size: var(--dp-font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.dp-batch__run:hover:not(:disabled) {
+  background: var(--dp-accent-hover);
+  border-color: var(--dp-accent-hover);
+}
+
+.dp-batch__run:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dp-batch__link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--dp-accent);
+  font: inherit;
+  font-size: var(--dp-font-size-sm);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dp-batch__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--dp-space-2, 8px);
+  font-size: var(--dp-font-size-sm);
+  color: var(--dp-fg-subtle);
+}
+
+.dp-batch__progress progress {
+  flex: 1 1 auto;
+  max-width: 320px;
+}
+
+.dp-batch__error {
+  margin: 0;
+  color: var(--dp-color-error);
+  font-size: var(--dp-font-size-sm);
+}
+
+.dp-batch__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--dp-radius-md);
+}
+
+.dp-batch__row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--dp-space-2, 8px);
+  padding: var(--dp-space-2, 8px);
+  /* --dp-border, not --dp-bg-subtle: a separator drawn in a SURFACE colour
+     only reads as a line while that surface differs from the one beside it.
+     Against these tokens it would all but vanish in light and invert in dark. */
+  border-bottom: 1px solid var(--dp-border);
+  border-left: 3px solid transparent;
+  font-size: var(--dp-font-size-sm);
+}
+
+.dp-batch__row:last-child {
+  border-bottom: none;
+}
+
+.dp-batch__row--done       { border-left-color: var(--dp-color-success); }
+.dp-batch__row--running    { border-left-color: var(--dp-accent); }
+.dp-batch__row--failed     { border-left-color: var(--dp-color-error); }
+.dp-batch__row--unrunnable { border-left-color: var(--dp-color-warning); }
+.dp-batch__row--cancelled  { border-left-color: var(--dp-fg-faint); }
+
+.dp-batch__row-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dp-batch__row-status,
+.dp-batch__row-count {
+  color: var(--dp-fg-subtle);
+}
+
+/* Classification chips (spec §5.4). They span the row because they are the
+   thing a reader scans a hundred rows for, and they always sum to that row's
+   own change count — emphasis, never a filter. */
+.dp-batch__row-chips {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.dp-batch__chip {
+  padding: 1px 6px;
+  border-radius: var(--dp-radius);
+  font-size: var(--dp-font-size-xs);
+  line-height: 1.6;
+  background: var(--dp-bg-subtle);
+  color: var(--dp-fg-subtle);
+  white-space: nowrap;
+}
+
+/* The two classes that most often carry a real obligation change are the two
+   worth picking out of a wall of chips. */
+.dp-batch__chip--obligationLanguage,
+.dp-batch__chip--numericalValue {
+  background: var(--dp-bg-hover);
+  color: var(--dp-fg);
+  font-weight: 600;
+}
+
+/* The footnotes under a finished batch: what it ran under, and what it is not. */
+.dp-batch__footnotes {
+  margin-top: var(--dp-space-3, 12px);
+  border-top: 1px solid var(--dp-border);
+  padding-top: var(--dp-space-2, 8px);
+}
+
+.dp-batch__note,
+.dp-batch__limits {
+  color: var(--dp-fg-faint);
+  font-size: var(--dp-font-size-xs);
+}
+
+.dp-batch__limits {
+  margin: 6px 0 0;
+  padding-left: 16px;
+}
+
+.dp-batch__limits li {
+  margin-bottom: 2px;
+}
+
+/* A reason spans the full row: it is prose, and truncating it would defeat
+   the point of showing why a pair could not be compared. */
+.dp-batch__row-reason {
+  grid-column: 1 / -1;
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-xs);
+}
+
+.dp-batch__row-actions {
+  display: flex;
+  gap: var(--dp-space-2, 8px);
+  justify-self: end;
+}
+
+.dp-batch__disclosure {
+  margin: 0;
+  padding: var(--dp-space-2, 8px);
+  background: var(--dp-bg-subtle);
+  border: 1px solid var(--dp-border);
+  border-radius: var(--dp-radius-md);
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-xs);
+}
+
+/* Drill-down: one pair's full change set, re-run on demand (spec 17 §4.3 step 5). */
+.dp-batch__drilldown {
+  margin: var(--dp-space-3, 12px);
+  padding: var(--dp-space-3, 12px);
+  border: 1px solid var(--dp-border);
+  border-radius: var(--dp-radius-md);
+  background: var(--dp-bg-raised);
+}
+
+.dp-batch__drilldown-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--dp-space-3, 12px);
+  margin-bottom: var(--dp-space-2, 8px);
+}
+
+.dp-batch__drilldown-head h3 {
+  margin: 0;
+  font-size: var(--dp-font-size-md);
+}
+
+.dp-batch__drilldown-note {
+  margin: 0 var(--dp-space-3, 12px);
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-sm);
+}
+
+/* ---------------------------------------------------------------------------
+   Pairing grid (feature 17 §6.6)
+
+   The visual weight is deliberate: the intro and the confirm button are the
+   loudest things on screen, because the failure this grid prevents is a user
+   scrolling past it. A band tints a row's left edge and nothing else — it must
+   never read as "this one is handled, skip it".
+   --------------------------------------------------------------------------- */
+.dp-pairing {
+  margin-top: var(--dp-space-3, 12px);
+}
+
+.dp-pairing__intro {
+  margin: 0 0 var(--dp-space-2, 8px);
+  padding: var(--dp-space-2, 8px) 10px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--dp-radius-md);
+  background: var(--dp-bg-subtle);
+  line-height: 1.45;
+}
+
+.dp-pairing__totals,
+.dp-pairing__note {
+  margin: 0 0 var(--dp-space-2, 8px);
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-xs);
+}
+
+.dp-pairing__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dp-pairing__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--dp-space-2, 8px);
+  padding: var(--dp-space-2, 8px) 10px;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--dp-border);
+}
+
+.dp-pairing__row--auto-pair { border-left-color: var(--dp-ok); }
+.dp-pairing__row--propose-with-rivals { border-left-color: var(--dp-warn); }
+.dp-pairing__row--unmatched { border-left-color: var(--dp-fg-faint); }
+
+.dp-pairing__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.dp-pairing__band {
+  justify-self: end;
+  font-size: var(--dp-font-size-xs);
+  white-space: nowrap;
+  color: var(--dp-fg-subtle);
+}
+
+.dp-pairing__band--propose-with-rivals { color: var(--dp-warn); font-weight: 600; }
+
+.dp-pairing__workings,
+.dp-pairing__rivals,
+.dp-pairing__reason {
+  grid-column: 1 / -1;
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-xs);
+}
+
+/* The rivals are the whole argument for a proposed pair, so they are not
+   truncated however long the names are. */
+.dp-pairing__rivals {
+  line-height: 1.5;
+}
+
+.dp-pairing__repoint {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--dp-space-1, 4px);
+}
+
+.dp-pairing__repoint-label {
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-xs);
+}
+
+.dp-pairing__repoint select {
+  min-width: 0;
+  flex: 1;
+  font: inherit;
+  font-size: var(--dp-font-size-sm);
+  padding: 2px 4px;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--dp-radius);
+  background: var(--dp-bg-raised);
+  color: var(--dp-fg);
+}
+
+.dp-pairing__disclosure {
+  margin: var(--dp-space-2, 8px) 0 0;
+  color: var(--dp-fg-subtle);
+  font-size: var(--dp-font-size-xs);
+}
+
+.dp-pairing__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: var(--dp-space-3, 12px);
+}
+
+.dp-pairing__confirm {
+  padding: 0 14px;
+  font-weight: 600;
+}
+
+.dp-pairing__confirmed {
+  color: var(--dp-ok);
+  font-weight: 600;
+}

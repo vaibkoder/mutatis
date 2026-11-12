@@ -1,0 +1,242 @@
+@import "tailwindcss";
+
+/*
+ * Explicit theme control. Tailwind 4's default dark variant follows
+ * prefers-color-scheme only; we need a user override that beats the OS, so the
+ * dark variant is driven by [data-theme="dark"] on <html>. "Follow system"
+ * resolves to one of the two concrete values before paint — see ThemeProvider.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: ui-serif, Georgia, "Times New Roman", serif;
+}
+
+/*
+ * Semantic tokens. Every colour the app uses is named for its ROLE, so the dark
+ * theme redefines values in one place and nothing downstream has to know.
+ */
+:root {
+  --surface: oklch(0.99 0 0);
+  --surface-raised: oklch(1 0 0);
+  --surface-sunken: oklch(0.965 0.002 265);
+  --border: oklch(0.9 0.004 265);
+  --border-strong: oklch(0.82 0.006 265);
+  --text: oklch(0.25 0.008 265);
+  --text-muted: oklch(0.52 0.01 265);
+  --text-faint: oklch(0.66 0.008 265);
+  --accent: oklch(0.52 0.16 256);
+  --accent-text: oklch(0.99 0 0);
+  --accent-soft: oklch(0.95 0.03 256);
+  --danger: oklch(0.55 0.19 25);
+  --focus: oklch(0.6 0.17 256);
+
+  /*
+   * Redline marks. These deliberately match the add-in's established
+   * convention — green underlined insertions, red struck deletions, purple
+   * moves, grey change bars — so a reviewer moving between the two products
+   * reads the same colours as the same thing.
+   */
+  --redline-ins: oklch(0.48 0.15 150);
+  --redline-ins-bg: oklch(0.94 0.05 150);
+  --redline-del: oklch(0.52 0.19 25);
+  --redline-del-bg: oklch(0.95 0.04 25);
+  --redline-move: oklch(0.5 0.17 300);
+  --redline-move-bg: oklch(0.95 0.04 300);
+  --redline-bar: oklch(0.7 0.01 265);
+}
+
+/*
+ * Pre-JS paint. `script-src 'self'` forbids the usual inline theme-bootstrap
+ * script, and a module script is deferred — so the first paint happens before
+ * any JS can set [data-theme]. This block makes that first paint follow the OS
+ * for anyone who has not overridden it, which is the overwhelming majority.
+ * Only a user whose explicit choice differs from their OS can see a single
+ * frame of the other theme.
+ *
+ * Scoped to :root:not([data-theme]) so it never fights an explicit choice.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --surface: oklch(0.19 0.006 265);
+    --surface-raised: oklch(0.23 0.007 265);
+    --surface-sunken: oklch(0.15 0.006 265);
+    --border: oklch(0.31 0.008 265);
+    --border-strong: oklch(0.42 0.01 265);
+    --text: oklch(0.93 0.004 265);
+    --text-muted: oklch(0.71 0.008 265);
+    --text-faint: oklch(0.56 0.008 265);
+    --accent: oklch(0.66 0.14 256);
+    --accent-text: oklch(0.17 0.01 256);
+    --accent-soft: oklch(0.3 0.06 256);
+    --danger: oklch(0.68 0.17 25);
+    --focus: oklch(0.7 0.15 256);
+  }
+}
+
+:root[data-theme="dark"] {
+  --surface: oklch(0.19 0.006 265);
+  --surface-raised: oklch(0.23 0.007 265);
+  --surface-sunken: oklch(0.15 0.006 265);
+  --border: oklch(0.31 0.008 265);
+  --border-strong: oklch(0.42 0.01 265);
+  --text: oklch(0.93 0.004 265);
+  --text-muted: oklch(0.71 0.008 265);
+  --text-faint: oklch(0.56 0.008 265);
+  --accent: oklch(0.66 0.14 256);
+  --accent-text: oklch(0.17 0.01 256);
+  --accent-soft: oklch(0.3 0.06 256);
+  --danger: oklch(0.68 0.17 25);
+  --focus: oklch(0.7 0.15 256);
+
+  --redline-ins: oklch(0.75 0.16 150);
+  --redline-ins-bg: oklch(0.28 0.06 150);
+  --redline-del: oklch(0.72 0.17 25);
+  --redline-del-bg: oklch(0.29 0.06 25);
+  --redline-move: oklch(0.74 0.15 300);
+  --redline-move-bg: oklch(0.29 0.05 300);
+  --redline-bar: oklch(0.45 0.01 265);
+}
+
+/* Expose the tokens to Tailwind utilities: bg-surface, text-muted, border-border… */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-focus: var(--focus);
+  --color-redline-ins: var(--redline-ins);
+  --color-redline-del: var(--redline-del);
+  --color-redline-move: var(--redline-move);
+}
+
+/*
+ * Base UI's <CSPProvider disableStyleElements> suppresses the ONE stylesheet Base
+ * UI would otherwise inject: the native-scrollbar-hiding rules used by
+ * ScrollArea.Viewport and by Select's popup when alignItemWithTrigger is on.
+ * Suppressing it means we owe those rules ourselves. This is that debt, paid.
+ */
+.base-ui-disable-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.base-ui-disable-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--surface);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden; /* the shell owns all scrolling */
+}
+
+/* Titlebar drag region. Anything interactive inside it needs .no-drag, or it
+   will never receive a pointer event — drag regions swallow them all. */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* react-resizable-panels styles its Separator via the data attribute, not a class. */
+[data-separator] {
+  background-color: var(--border);
+  transition: background-color 120ms ease;
+}
+[data-separator]:hover,
+[data-separator][data-active] {
+  background-color: var(--accent);
+}
+[data-separator]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -1px;
+}
+
+:where(button, [role="button"], a, input, textarea):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Redline marks.
+   Colours follow the add-in's established convention so a reviewer moving
+   between the two products reads the same colour as the same thing.
+   --------------------------------------------------------------------------- */
+
+.redline {
+  color: var(--text);
+  /* Documents are read, not skimmed: give the column a comfortable measure and
+     let the engine's own paragraph spacing do the rest. */
+  font-size: 11pt;
+}
+
+.redline p,
+.redline h2 {
+  /* The engine supplies real margins via style; stop the browser adding its own
+     on top, which would double every gap. */
+  margin-block: 0;
+}
+
+.redline h2 {
+  font-size: inherit;
+}
+
+.redline-number {
+  color: var(--text-muted);
+}
+
+.redline-ins {
+  color: var(--redline-ins);
+  background-color: var(--redline-ins-bg);
+  text-decoration: underline;
+  text-decoration-thickness: from-font;
+}
+
+.redline-del {
+  color: var(--redline-del);
+  background-color: var(--redline-del-bg);
+  text-decoration: line-through;
+}
+
+/* A move is a deletion and an insertion that are the SAME content. Colouring it
+   as neither, and marking it as both, is what stops a reviewer reading a
+   relocated clause as one clause lost and a different one gained. */
+.redline-move-from {
+  color: var(--redline-move);
+  background-color: var(--redline-move-bg);
+  text-decoration: line-through double;
+}
+
+.redline-move-to {
+  color: var(--redline-move);
+  background-color: var(--redline-move-bg);
+  text-decoration: underline double;
+}
+
+.redline-image {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.redline-table {
+  font-size: inherit;
+}

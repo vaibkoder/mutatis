@@ -1,0 +1,75 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+
+    // "office-js" is required even though we never touch Office: the compare path
+    // reaches @shared/doc-model, which references the ambient Word namespace in
+    // type positions. Without it tsc reports ~50 "Cannot find namespace Word"
+    // errors in upstream files we are forbidden to edit.
+    "types": ["node", "office-js"],
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/renderer/src/*"],
+      "@main/*": ["src/main/*"],
+      "@preload/*": ["src/preload/*"],
+      "@common/*": ["src/common/*"],
+
+      // Engine runtime deps, pinned to OUR node_modules. Keep this list in step
+      // with `engineDedupe` in scripts/engine-aliases.mjs (minus `fontkit`,
+      // which src/types/fontkit-shim.d.ts declares instead because the
+      // DefinitelyTyped types are incompatible with @pdfme/pdf-lib's).
+      // Nothing checks the two lists against each other: tests/engine-contract.test.ts
+      // only checks that each deduped package is installed here.
+      // Without these, tsc
+      // resolves them by walking up from the importing file — which used to land
+      // in the engine repo's node_modules and made our build depend on that
+      // repo's install state. Pinning to this app's node_modules turns that silent
+      // coupling into an obvious failure. `resolve.dedupe` does the same job for the bundler and
+      // the test runner; TypeScript needs it spelled out separately.
+      "pizzip": ["node_modules/pizzip"],
+      "fast-xml-parser": ["node_modules/fast-xml-parser"],
+      // Types first: a `paths` entry overrides normal resolution, which would
+      // otherwise skip the @types lookup and leave the engine's diff code `any`.
+      "diff-match-patch": ["node_modules/@types/diff-match-patch", "node_modules/diff-match-patch"],
+      "fast-diff": ["node_modules/fast-diff"],
+      "fuse.js": ["node_modules/fuse.js"],
+      "chrono-node": ["node_modules/chrono-node"],
+      "words-to-numbers": ["node_modules/words-to-numbers"],
+      "harfbuzzjs": ["node_modules/harfbuzzjs"],
+      "@pdfme/pdf-lib": ["node_modules/@pdfme/pdf-lib"],
+      "pdfjs-dist": ["node_modules/pdfjs-dist"],
+      "@preact/signals": ["node_modules/@preact/signals"],
+      "preact": ["node_modules/preact"],
+
+      // THE ENGINE, read from the repository root. These three must stay
+      // identical to `engineAliases` in scripts/engine-aliases.mjs;
+      // tests/engine-contract.test.ts fails if they drift.
+      "@shared/*": ["../src/shared/*"],
+      "@features/*": ["../src/features/*"],
+      "@host-web/*": ["../src/host-web/*"]
+    }
+  },
+  "include": ["src/**/*", "eslint-plugins/**/*", "*.config.ts"],
+  "exclude": ["node_modules", "out", "dist", "release"]
+}

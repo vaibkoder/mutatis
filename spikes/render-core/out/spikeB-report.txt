@@ -1,0 +1,13 @@
+═══ SPIKE B — footnote reservation fixpoint ═══
+page body height H=600pt, line=14pt, separator=12pt, fixpoint bound=8
+  page  1: lines 39  iters=2  bodyUsed≈598/600pt  footnotes[fn1(40)]
+  page  2: lines  4  iters=2  bodyUsed≈126/600pt  footnotes[fn2(30) fn3(28)]
+  page  3: lines  1  iters=2  bodyUsed≈600/600pt  footnotes[fn4(574↧split)]  carry-out=326pt
+  page  4: lines 18  iters=2  bodyUsed≈590/600pt  footnotes[] cont-in=326
+  page  5: lines 28  iters=2  bodyUsed≈439/600pt  footnotes[fn5(35)]
+
+fixpoint: max iterations on any page = 2 (bound 8)  ✓ converged
+no-overflow: ✓ every page within H
+oversized split: fn4 (900pt) spread across 2 page(s) with continuation  ✓
+
+VERDICT: GO-eligible ✓ (fixpoint converges, no overflow, oversized footnote splits + continues)

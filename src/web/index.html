@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mutatis — standalone</title>
+    <!-- Design tokens + shared component styles + the web app frame.
+         NO office.js, NO Office theme bridge, NO network: this is the static,
+         backendless web target (ADR-0022; confidentiality by construction). -->
+    <link rel="stylesheet" href="../styles/tokens.css" />
+    <link rel="stylesheet" href="../styles/shell.css" />
+    <link rel="stylesheet" href="../styles/web.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

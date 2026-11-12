@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Entitlements for the helper processes (Renderer, GPU, Plugin, Network).
+
+  Same single entitlement, same reasoning. The renderer helper is in fact the
+  process that JITs, so this is the one that cannot be dropped.
+
+  Note that this does NOT carry the plugin helper's usual
+  allow-unsigned-executable-memory / disable-library-validation pair. Those are
+  for Flash-era plugin hosting; `plugins` is false on our only BrowserWindow and
+  nothing in this app loads an external plugin.
+-->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+  </dict>
+</plist>

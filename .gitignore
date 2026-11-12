@@ -1,0 +1,24 @@
+node_modules/
+dist/
+dist-web/
+dist-single/
+.env
+.env.local
+*.local
+.DS_Store
+.claude/worktrees/
+.trees/
+project-status.html
+
+# RenderCore spikes (throwaway): never commit the non-OFL reference font or large binary artifacts
+spikes/render-core/assets/Arial-Reference.ttf
+spikes/render-core/out/*.pdf
+spikes/render-core/out/*.html
+
+# RenderCore dev-time font vendoring scratch (scripts/vendor-fonts.mjs)
+.fontprobe/
+
+# Local-only scratch and test artifacts (binary; not kept in the repo)
+.redline-poc/
+redline-test-docs/
+smoke-test/

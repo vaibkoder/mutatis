@@ -1,0 +1,66 @@
+/*
+ * Mutatis design tokens.
+ * All colour, spacing, and typography values live here. No component hardcodes a
+ * colour outside this file (ADR-0012). Colours are driven by office-theme.css,
+ * which maps Office.context.officeTheme → these custom properties.
+ *
+ * Contrast: text/background pairs meet WCAG 2.1 AA (≥4.5:1) in both light and dark.
+ */
+
+:root {
+  /* Severity colours (AA-contrast against --dp-bg) */
+  --dp-color-error: #a4262c;
+  --dp-color-warning: #8a6d00;
+  --dp-color-info: #005a9e;
+  --dp-color-check: #8a6300;   /* amber "Check" — used for ambiguous/soft findings */
+  --dp-color-success: #0e700e;
+
+  /* Surfaces — overridden by office-theme.css from the live Word theme */
+  --dp-bg: #ffffff;
+  --dp-bg-subtle: #f3f2f1;
+  --dp-bg-hover: #edebe9;
+  --dp-fg: #201f1e;
+  --dp-fg-subtle: #605e5c;
+  --dp-border: #c8c6c4;
+  --dp-accent: #0078d4;
+  --dp-accent-fg: #ffffff;
+  --dp-overlay: rgba(0, 0, 0, 0.45);   /* modal scrim — theme-independent */
+
+  /* Spacing scale */
+  --dp-space-1: 4px;
+  --dp-space-2: 8px;
+  --dp-space-3: 12px;
+  --dp-space-4: 16px;
+  --dp-space-5: 24px;
+
+  /* Typography */
+  --dp-font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --dp-font-size-xs: 11px;
+  --dp-font-size-sm: 12px;
+  --dp-font-size-md: 14px;
+  --dp-font-size-lg: 16px;
+  --dp-line-height: 1.4;
+
+  /* Focus ring — visible for keyboard nav (WCAG 2.1 AA 2.4.7) */
+  --dp-focus-ring: 2px solid var(--dp-accent);
+  --dp-radius: 2px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--dp-font-family);
+  font-size: var(--dp-font-size-md);
+  line-height: var(--dp-line-height);
+  color: var(--dp-fg);
+  background: var(--dp-bg);
+}
+
+/* Visible focus ring everywhere — never remove without a replacement */
+:focus-visible {
+  outline: var(--dp-focus-ring);
+  outline-offset: 1px;
+}

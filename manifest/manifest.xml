@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+
+  <!-- GUID is stable; never change it after first sideload -->
+  <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
+  <Version>0.1.0</Version>
+  <ProviderName>Mutatis</ProviderName>
+  <DefaultLocale>en-GB</DefaultLocale>
+  <DisplayName DefaultValue="Mutatis" />
+  <Description DefaultValue="Client-side legal document proofer for Singapore and England &amp; Wales drafting." />
+
+  <IconUrl DefaultValue="https://mutatis.example/public/icon-80.png" />
+  <HighResolutionIconUrl DefaultValue="https://mutatis.example/public/icon-80.png" />
+  <SupportUrl DefaultValue="https://github.com/vaibkoder/mutatis" />
+
+  <AppDomains>
+    <!-- Only the add-in's own static host is permitted -->
+    <AppDomain>https://mutatis.example</AppDomain>
+  </AppDomains>
+
+  <Hosts>
+    <Host Name="Document" />
+  </Hosts>
+
+  <Requirements>
+    <Sets DefaultMinVersion="1.5">
+      <Set Name="WordApi" MinVersion="1.5" />
+    </Sets>
+  </Requirements>
+
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://mutatis.example/src/taskpane/index.html" />
+  </DefaultSettings>
+
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title" />
+            <Description resid="GetStarted.Description" />
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl" />
+          </GetStarted>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="Mutatis.Group">
+                <Label resid="Group.Label" />
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16" />
+                  <bt:Image size="32" resid="Icon.32x32" />
+                  <bt:Image size="80" resid="Icon.80x80" />
+                </Icon>
+                <Control xsi:type="Button" id="Mutatis.ShowPane">
+                  <Label resid="ShowPane.Label" />
+                  <Supertip>
+                    <Title resid="ShowPane.Label" />
+                    <Description resid="ShowPane.Tooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16" />
+                    <bt:Image size="32" resid="Icon.32x32" />
+                    <bt:Image size="80" resid="Icon.80x80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url" />
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="https://mutatis.example/public/icon-16.png" />
+        <bt:Image id="Icon.32x32" DefaultValue="https://mutatis.example/public/icon-32.png" />
+        <bt:Image id="Icon.80x80" DefaultValue="https://mutatis.example/public/icon-80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://github.com/vaibkoder/mutatis" />
+        <bt:Url id="Taskpane.Url" DefaultValue="https://mutatis.example/src/taskpane/index.html" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="Mutatis" />
+        <bt:String id="Group.Label" DefaultValue="Mutatis" />
+        <bt:String id="ShowPane.Label" DefaultValue="Open Mutatis" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="Client-side legal document proofer for Singapore and England &amp; Wales." />
+        <bt:String id="ShowPane.Tooltip" DefaultValue="Open the Mutatis task pane to check your document." />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

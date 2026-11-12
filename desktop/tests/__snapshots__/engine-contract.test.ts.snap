@@ -1,0 +1,9 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`engine contract — Part B: output snapshot (EXPECTED to change) > produces a stable change set for a fixed input 1`] = `
+{
+  "blocks": 7,
+  "changesTotal": 4,
+  "ops": 7,
+}
+`;
